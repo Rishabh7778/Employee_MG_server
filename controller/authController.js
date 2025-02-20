@@ -24,23 +24,23 @@ const login = async (req, res) => {
         .json({ success: false, message: "Password does not match" });
     }
 
-    // Prepare payload including role for proper authorization checks.
+    // Include the name in the payload
     const payload = {
       id: userCheck._id,
       email: userCheck.email,
       role: userCheck.role,
+      name: userCheck.name, // Added name
     };
 
-    // Generate access token (short-lived)
+    // Generate tokens
     const token = generateToken(payload);
-    // Generate refresh token (longer-lived, using a different secret ideally)
     const refreshToken = jwt.sign(
       payload,
       process.env.REFRESH_SECRET || "default_refresh_secret",
       { expiresIn: "7d" }
     );
 
-    // Send response with both tokens and user data
+    // Send response with tokens and user data
     res.status(200).json({
       success: true,
       token,
@@ -55,8 +55,14 @@ const login = async (req, res) => {
 
 // Verify controller: Returns the user data (req.user is set by jwtAuthMiddleware)
 // Optionally, you can generate a new access token here if needed.
-const verify = (req, res) => {
-  return res.status(200).json({ success: true, user: req.user });
+const verify = async (req, res) => {
+  try {
+    // Query the database using the id from req.user
+    const user = await User.findById(req.user.id);
+    return res.status(200).json({ success: true, user });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 };
 
 // Refresh Token Handler: Generates a new access token using a valid refresh token.
