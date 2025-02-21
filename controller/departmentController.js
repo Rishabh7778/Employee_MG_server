@@ -52,7 +52,8 @@ const UpdateEditDepartment = async (req, res) => {
 const deleteDepartment = async (req, res) => {
     try {
       const { id } = req.params;
-      const deleteDep = await DepartmentModel.findByIdAndDelete(id);
+      const deleteDep = await DepartmentModel.findById({_id: id});
+      await deleteDep.deleteOne();
       if (!deleteDep) {
         return res.status(404).json({ success: false, error: "Department not found" });
       }
