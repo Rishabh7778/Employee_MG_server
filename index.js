@@ -8,6 +8,7 @@ import employeeRoute from './routes/employee.js'
 import salaryRoute from './routes/salary.js'
 import leaveRoute from './routes/leave.js'
 import settingRoute from './routes/setting.js'
+import dashboardRoute from './routes/dashboard.js'
 
 dotenv.config();
 const app = express();
@@ -21,6 +22,7 @@ app.use('/api/employee', employeeRoute);
 app.use('/api/salary', salaryRoute);
 app.use('/api/leave', leaveRoute);
 app.use('/api/setting', settingRoute);
+app.use('/api/dashboard', dashboardRoute);
 
 
 connectDB();

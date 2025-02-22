@@ -24,26 +24,32 @@ const addLeave = async (req, res) => {
 const getLeave = async (req, res) => {
     try {
       const { id } = req.params;
-      // First, try to find the employee.
-      // Adjust this depending on whether id is an employee _id or a userId.
+      console.log("getLeave: id received:", id);
+      
+      // Attempt to find employee by _id first.
       let employee = await Employee.findById(id);
       if (!employee) {
-        // If not found by _id, try finding by userId
+        console.log("Employee not found by _id. Trying userId lookup...");
         employee = await Employee.findOne({ userId: id });
       }
+      
+      // Instead of a 404, return an empty leave list if no employee is found.
       if (!employee) {
-        return res.status(404).json({ success: false, error: "Employee not found" });
+        console.log("Employee not found with id:", id);
+        return res.status(200).json({ success: true, leaves: [] });
       }
-  
-      // Now, fetch leaves for the found employee
+      
+      console.log("Found employee:", employee);
       const leaves = await Leave.find({ employeeId: employee._id });
-      // Always return success, even if leaves is an empty array
+      console.log("Number of leaves found:", leaves.length);
       return res.status(200).json({ success: true, leaves });
     } catch (error) {
       console.log("Error in getLeave:", error);
       return res.status(500).json({ success: false, error: "Leave get error in server" });
     }
   };
+  
+  
   
 
 
