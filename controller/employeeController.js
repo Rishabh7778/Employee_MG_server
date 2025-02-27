@@ -4,20 +4,19 @@ import streamifier from "streamifier";
 import Employee from "../models/employeeModel.js";
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
-import path from "path";
 
-// Configure Cloudinary using environment variables
+// Configure Cloudinary using environment variables (make sure these are set in your .env file)
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
   api_key: process.env.CLOUDINARY_API_KEY,       
   api_secret: process.env.CLOUDINARY_API_SECRET, 
 });
 
-// Use Multer's memoryStorage so the file is stored in memory
+// Use Multer's memoryStorage so that the file is stored in memory (not on disk)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// addEmployee Controller with enhanced error handling
+// Controller to add a new employee with Cloudinary upload
 const addEmployee = async (req, res) => {
   try {
     const {
@@ -34,7 +33,7 @@ const addEmployee = async (req, res) => {
       role
     } = req.body;
 
-    // Validate required fields (optional, but useful)
+    // Validate required fields (optional)
     if (!name || !email || !employeeId || !password || !dob || !gender || !maritalStatus || !designation || !department || !salary || !role) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
@@ -54,7 +53,7 @@ const addEmployee = async (req, res) => {
       try {
         const cloudResult = await new Promise((resolve, reject) => {
           const uploadStream = cloudinary.uploader.upload_stream(
-            { folder: "employee_images" }, // Optional folder name in Cloudinary
+            { folder: "employee_images" }, // Optional folder name
             (error, result) => {
               if (error) return reject(error);
               resolve(result);
@@ -62,7 +61,7 @@ const addEmployee = async (req, res) => {
           );
           streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
         });
-        profileImage = cloudResult.secure_url; // Use this URL for the image
+        profileImage = cloudResult.secure_url; // This is the public URL from Cloudinary
       } catch (uploadError) {
         console.error("Cloudinary upload error:", uploadError);
         return res.status(500).json({ success: false, error: "Cloudinary upload error" });
@@ -75,7 +74,7 @@ const addEmployee = async (req, res) => {
       email,
       password: hashpassword,
       role,
-      profileImage, // This now contains the full Cloudinary URL
+      profileImage, // Save the Cloudinary URL here
     });
     const savedUser = await newUser.save();
 
@@ -101,6 +100,7 @@ const addEmployee = async (req, res) => {
 };
 
 // Other controllers remain unchanged
+
 const getEmployee = async (req, res) => {
   try {
     const employees = await Employee.find()
@@ -125,7 +125,7 @@ const getEmployeeOne = async (req, res) => {
     }
     return res.status(200).json({ success: true, employees });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json({ success: false, error: "Server Error in Get employees One Controller" });
   }
 };
