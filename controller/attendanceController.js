@@ -3,7 +3,6 @@ import Employee from '../models/employeeModel.js';
 
 const getAttendance = async (req, res) => {
     try {
-        // Corrected date initialization
         const date = new Date().toISOString().split('T')[0];
 
         const attendance = await Attendance.find({ date }).populate({

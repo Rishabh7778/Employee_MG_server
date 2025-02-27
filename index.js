@@ -14,8 +14,10 @@ import attendanceRoute from './routes/attendance.js'
 dotenv.config();
 const app = express();
 
+//This is cors
+
 app.use(cors({
-    origin: "https://employee-management-client-lvoe.vercel.app",
+    origin: "https://employeems-mu.vercel.app",
     credentials: true
 }));
 app.use(express.json());

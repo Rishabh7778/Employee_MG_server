@@ -10,7 +10,6 @@ const defaultAttendance = async (req, res, next) => {
         const day = String(now.getDate()).padStart(2, '0');
         const date = `${year}-${month}-${day}`;
 
-        // Check for existing attendance
         const existingAttendance = await Attendance.findOne({ date });
 
         if (!existingAttendance) {

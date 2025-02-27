@@ -19,7 +19,6 @@ export const jwtAuthMiddleware = (req, res, next) => {
   }
 };
 
-// Function to generate a new access token (short-lived)
 export const generateToken = (user) => {
   const payload = { id: user.id, email: user.email, role: user.role };
   // Access token valid for 1 hour (adjust as needed)

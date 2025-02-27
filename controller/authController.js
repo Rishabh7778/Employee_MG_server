@@ -24,12 +24,11 @@ const login = async (req, res) => {
         .json({ success: false, message: "Password does not match" });
     }
 
-    // Include the name in the payload
     const payload = {
       id: userCheck._id,
       email: userCheck.email,
       role: userCheck.role,
-      name: userCheck.name, // Added name
+      name: userCheck.name, 
     };
 
     // Generate tokens
