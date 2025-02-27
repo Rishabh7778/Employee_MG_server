@@ -17,7 +17,7 @@ const app = express();
 //This is cors
 
 app.use(cors({
-    origin: "https://employeems-mu.vercel.app",
+    origin:  ["https://employeems-mu.vercel.app", "http://localhost:5173"],
     credentials: true
 }));
 app.use(express.json());
