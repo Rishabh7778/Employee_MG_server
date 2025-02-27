@@ -3,18 +3,24 @@ import Employee from '../models/employeeModel.js';
 
 const getAttendance = async (req, res) => {
     try {
-        const date = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split("T")[0];
 
-        const attendance = await Attendance.find({ date }).populate({
+        const attendance = await Attendance.find({
+            createdAt: { $gte: new Date(today) }
+        }).populate({
             path: "employeeId",
             populate: ["department", "userId"]
         });
 
+        console.log("Fetched Attendance:", attendance); // Debugging
+
         res.status(200).json({ success: true, attendance });
     } catch (error) {
-        res.status(200).json({ success: false, error: "Error Attendance controller in Server" });
+        console.error("Attendance Fetch Error:", error);
+        res.status(500).json({ success: false, error: error.message || "Server Error" });
     }
 };
+
 
 
 const updateAttendance = async(req, res) => {
