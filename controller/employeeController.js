@@ -1,24 +1,23 @@
 import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+import streamifier from "streamifier";
 import Employee from "../models/employeeModel.js";
-import User from "../models/user.js"
-import bcrypt from 'bcrypt';
+import User from "../models/user.js";
+import bcrypt from "bcrypt";
 import path from "path";
-import DepartmentModel from "../models/departmentModel.js";
 
-
-// Use Vercel's writable /tmp directory for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "/tmp"); // Updated destination for Vercel environment
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
+// 1) Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// 2) Use Multer's memoryStorage
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Controller to add a new employee
+// 3) addEmployee Controller
 const addEmployee = async (req, res) => {
   try {
     const {
@@ -35,7 +34,7 @@ const addEmployee = async (req, res) => {
       role
     } = req.body;
 
-    // Check if the user already exists
+    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
@@ -43,21 +42,37 @@ const addEmployee = async (req, res) => {
         .json({ success: false, error: "User already exist in Employees list" });
     }
 
-    // Hash the password
+    // Hash password
     const hashpassword = await bcrypt.hash(password, 10);
 
-    // Create new user with the uploaded profile image (if any)
+    // 4) Upload image to Cloudinary (if file is present)
+    let profileImage = "";
+    if (req.file) {
+      const cloudResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: "employee_images" }, // optional folder name
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+        // Pipe file buffer to Cloudinary
+        streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+      });
+      profileImage = cloudResult.secure_url; // The public image URL
+    }
+
+    // 5) Create new user with Cloudinary image URL
     const newUser = new User({
       name,
       email,
       password: hashpassword,
       role,
-      profileImage: req.file ? req.file.filename : ""
+      profileImage, // Save the cloud URL
     });
-
     const savedUser = await newUser.save();
 
-    // Create new employee using the saved user's _id
+    // 6) Create new employee referencing savedUser
     const newEmployee = new Employee({
       userId: savedUser._id,
       employeeId,
@@ -67,9 +82,8 @@ const addEmployee = async (req, res) => {
       designation,
       department,
       salary,
-      role
+      role,
     });
-
     await newEmployee.save();
 
     return res.status(200).json({ success: true, message: "Employee is created" });
@@ -81,32 +95,39 @@ const addEmployee = async (req, res) => {
   }
 };
 
-
+// 7) Other Controllers (unchanged)
 const getEmployee = async (req, res) => {
-    try {
-
-        const employees = await Employee.find().populate('userId', { password: 0 }).populate('department');
-        return res.status(200).json({ success: true, employees });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: "Server Error in Get employees Controller" });
-    }
-}
-
+  try {
+    const employees = await Employee.find()
+      .populate("userId", { password: 0 })
+      .populate("department");
+    return res.status(200).json({ success: true, employees });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, error: "Server Error in Get employees Controller" });
+  }
+};
 
 const getEmployeeOne = async (req, res) => {
-    const { id } = req.params;
-    try {
-        let employees;
-        employees = await Employee.findById(id).populate('userId', { password: 0 }).populate('department');
-        if (!employees) {
-            employees = await Employee.findOne({ userId: id }).populate('userId', { password: 0 }).populate('department');
-        }
-        return res.status(200).json({ success: true, employees });
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({ success: false, error: "Server Error in Get employees One Controller" });
+  const { id } = req.params;
+  try {
+    let employees = await Employee.findById(id)
+      .populate("userId", { password: 0 })
+      .populate("department");
+    if (!employees) {
+      employees = await Employee.findOne({ userId: id })
+        .populate("userId", { password: 0 })
+        .populate("department");
     }
-}
+    return res.status(200).json({ success: true, employees });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Server Error in Get employees One Controller" });
+  }
+};
 
 const editEmployee = async (req, res) => {
     try {
