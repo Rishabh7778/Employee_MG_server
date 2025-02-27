@@ -6,57 +6,79 @@ import path from "path";
 import DepartmentModel from "../models/departmentModel.js";
 
 
+// Configure multer storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "public/uploads")
+      cb(null, "public/uploads"); // Ensure this directory exists
     },
     filename: (req, file, cb) =>
-        cb(null, Date.now() + path.extname(file.originalname))
-})
-
-const upload = multer({ storage: storage })
-
-const addEmployee = async (req, res) => {
+      cb(null, Date.now() + path.extname(file.originalname))
+  });
+  
+  const upload = multer({ storage: storage });
+  
+  const addEmployee = async (req, res) => {
     try {
-        const { name, email, employeeId, password, dob, gender, maritalStatus, designation, department, salary, role } = req.body;
-        const user = await User.findOne({ email })
-        if (user) {
-            res.status(404).json({ success: false, error: "User already exist in Employees list" })
-        }
-        const hashpassword = await bcrypt.hash(password, 10)
-        const newUser = new User({
-            name,
-            email,
-            password: hashpassword,
-            role,
-            profileImage: req.file ? req.file.filename : ""
-        })
-
-        const savedUser = await newUser.save()
-
-        const newEmployee = new Employee({
-            userId: savedUser._id,
-            employeeId,
-            dob,
-            gender,
-            maritalStatus,
-            designation,
-            department,
-            salary,
-            role
-        })
-
-        await newEmployee.save()
-
-        return res.status(200).json({ success: true, message: "Employee is created" })
-
+      const {
+        name,
+        email,
+        employeeId,
+        password,
+        dob,
+        gender,
+        maritalStatus,
+        designation,
+        department,
+        salary,
+        role
+      } = req.body;
+  
+      // Check if the user already exists
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res
+          .status(404)
+          .json({ success: false, error: "User already exist in Employees list" });
+      }
+  
+      // Hash the password
+      const hashpassword = await bcrypt.hash(password, 10);
+  
+      // Create new user
+      const newUser = new User({
+        name,
+        email,
+        password: hashpassword,
+        role,
+        profileImage: req.file ? req.file.filename : ""
+      });
+  
+      const savedUser = await newUser.save();
+  
+      // Create new employee using the saved user's _id
+      const newEmployee = new Employee({
+        userId: savedUser._id,
+        employeeId,
+        dob,
+        gender,
+        maritalStatus,
+        designation,
+        department,
+        salary,
+        role
+      });
+  
+      await newEmployee.save();
+  
+      return res.status(200).json({ success: true, message: "Employee is created" });
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({ success: false, error: "server error in adding employee" })
-
+      // Log detailed error information for debugging
+      console.error("Error in addEmployee controller:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Server error in adding employee" });
     }
-
-}
+  };
 
 
 const getEmployee = async (req, res) => {
