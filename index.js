@@ -17,8 +17,11 @@ const app = express();
 //This is cors
 
 app.use(cors({
-    origin:  ["https://employeems-mu.vercel.app", "http://localhost:5173"],
-    credentials: true
+    origin: ["https://employee-management-client-lvoe.vercel.app", "http://localhost:5173"],
+    credentials: true,
+    optionsSuccessStatus: 200,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 app.use(express.static('public/uploads'));
