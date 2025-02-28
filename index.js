@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import connectDB from './db/db.js'; 
+import connectDB from './db/db.js';
 import authRouter from './routes/auth.js';
 import departmentRoute from './routes/department.js'
 import employeeRoute from './routes/employee.js'
@@ -14,10 +14,12 @@ import attendanceRoute from './routes/attendance.js'
 dotenv.config();
 const app = express();
 
-app.use(cors({
-    origin: "http://localhost:5173",
-    credentials: true, 
-}));
+app.use(
+    cors({
+        origin: ["https://employeemsrk.netlify.app", "http://localhost:5173"],
+        credentials: true,
+    })
+);
 app.use(express.json());
 app.use(express.static('public/uploads'));
 app.use('/api/auth', authRouter);
