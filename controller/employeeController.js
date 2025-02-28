@@ -1,22 +1,23 @@
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import streamifier from "streamifier";
 import Employee from "../models/employeeModel.js";
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
+import path from "path";
 
-// Configure Cloudinary using environment variables (make sure these are set in your .env file)
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
-  api_key: process.env.CLOUDINARY_API_KEY,       
-  api_secret: process.env.CLOUDINARY_API_SECRET, 
+// Configure Multer's diskStorage to store files in public/uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "public/uploads"); // Ensure this directory exists
+  },
+  filename: (req, file, cb) => {
+    // Generate a unique filename with the current timestamp and original file extension
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
 });
 
-// Use Multer's memoryStorage so that the file is stored in memory (not on disk)
-const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Controller to add a new employee with Cloudinary upload
+// Controller to add a new employee using local file storage
 const addEmployee = async (req, res) => {
   try {
     const {
@@ -33,12 +34,12 @@ const addEmployee = async (req, res) => {
       role
     } = req.body;
 
-    // Validate required fields (optional)
+    // Validate required fields
     if (!name || !email || !employeeId || !password || !dob || !gender || !maritalStatus || !designation || !department || !salary || !role) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
 
-    // Check if user already exists
+    // Check if the user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, error: "User already exist in Employees list" });
@@ -47,34 +48,19 @@ const addEmployee = async (req, res) => {
     // Hash the password
     const hashpassword = await bcrypt.hash(password, 10);
 
-    // Upload image to Cloudinary if a file is provided
+    // Upload image locally: Use the filename from multer
     let profileImage = "";
     if (req.file) {
-      try {
-        const cloudResult = await new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.uploader.upload_stream(
-            { folder: "employee_images" }, // Optional folder name
-            (error, result) => {
-              if (error) return reject(error);
-              resolve(result);
-            }
-          );
-          streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
-        });
-        profileImage = cloudResult.secure_url; // This is the public URL from Cloudinary
-      } catch (uploadError) {
-        console.error("Cloudinary upload error:", uploadError);
-        return res.status(500).json({ success: false, error: "Cloudinary upload error" });
-      }
+      profileImage = req.file.filename; // This is stored in public/uploads folder
     }
 
-    // Create new user with the Cloudinary image URL
+    // Create new user with the local image filename
     const newUser = new User({
       name,
       email,
       password: hashpassword,
       role,
-      profileImage, // Save the Cloudinary URL here
+      profileImage, // Save only the filename
     });
     const savedUser = await newUser.save();
 
@@ -98,8 +84,6 @@ const addEmployee = async (req, res) => {
     return res.status(500).json({ success: false, error: "Server error in adding employee" });
   }
 };
-
-// Other controllers remain unchanged
 
 const getEmployee = async (req, res) => {
   try {
@@ -162,7 +146,6 @@ const editEmployee = async (req, res) => {
     }
 
     return res.status(200).json({ success: true, message: "Employee is successfully updated" });
-
   } catch (error) {
     console.error('Error in editing employee:', error);
     return res.status(500).json({ success: false, error: "Server Error in Edit employees Controller" });
